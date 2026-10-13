@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "atlas-engine-ryan-vo",
+  "owner": "A220man",
+  "email": "ryandtvo@gmail.com",
+  "domain": "AI/ML developer tools",
+  "summary": "Work in progress: atlas-engine-ryan-vo",
+  "workflows": [
+    "grill-with-docs: frontier-gated design tree interview with pivot-first ordering and numbered assumptions",
+    "to-prd: PRD generation with decision mapping tables and staleness detection",
+    "to-issues: issue generation from decision records with acceptance criteria and blocker tracking",
+    "coverage: decision coverage matrix across PRD, issue, implementation, and verification artifacts"
+  ],
+  "auth": "oidc-keycloak-saml-broker",
+  "llm_providers": [
+    "openai-compatible",
+    "anthropic",
+    "gemini",
+    "ollama"
+  ],
+  "status": "work-in-progress"
+}
