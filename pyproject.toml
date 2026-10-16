@@ -1,0 +1,20 @@
+[project]
+name = "atlas-engine"
+version = "1.0.0"
+description = "Decision-traceability engine for grill-to-verification workflows, with OIDC auth and an optional LLM advisory layer"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [
+  { name = "Ryan Vo", email = "ryandtvo@gmail.com" },
+]
+
+[project.urls]
+Homepage = "https://github.com/A220man/atlas-engine-ryan-vo"
+Repository = "https://github.com/A220man/atlas-engine-ryan-vo"
+
+# The backend package and its pinned runtime/dev dependencies live in
+# backend/requirements.txt and backend/pyproject.toml. This root file is
+# project metadata only; it is not a build target.
+[tool.uv]
+package = false

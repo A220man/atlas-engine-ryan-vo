@@ -57,6 +57,10 @@ class User(Base):
     def has_any_role(self, roles: List[UserRole]) -> bool:
         return any(r in self.roles for r in roles)
 
+    def role_values(self) -> List[str]:
+        """Role strings whether roles were stored as enums (in-memory) or JSON strings."""
+        return [r.value if isinstance(r, UserRole) else r for r in (self.roles or [])]
+
 
 ROLE_HIERARCHY = {
     UserRole.VIEWER: 0,

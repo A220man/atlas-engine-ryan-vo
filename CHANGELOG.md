@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
+## [Unreleased]
+
+### Added
+- Root `pyproject.toml` with project metadata (author: Ryan Vo)
+- OIDC callback now validates `state`, `nonce`, and PKCE `code_verifier` server-side via a short-lived signed `oauth_state` cookie; single-use, cleared after success
+- OIDC login/callback integration tests with a local protocol fixture (signed RS256 `id_token`): happy-path token propagation into `/me`, and rejection of missing/mismatched state, PKCE mismatch, and nonce mismatch
+
+### Fixed
+- `/me` role serialization crashed for DB-loaded users (`roles` stored as JSON strings; `r.value` raised `AttributeError`); added `User.role_values()` and used it in `/me` and session-token creation
+
 ## 1.0.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.

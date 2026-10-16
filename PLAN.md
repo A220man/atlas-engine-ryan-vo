@@ -4,7 +4,7 @@ Each round completes one feature or repair. Future items are planned, not implem
 
 ## Current round
 
-core-skeleton
+auth-callback-validation
 
 ## Roadmap
 
@@ -19,9 +19,25 @@ Acceptance:
 - Docker compose with backend, frontend, Keycloak, PostgreSQL
 - Backend and frontend tests pass
 
-Implementation: `backend/app/main.py`, `backend/app/api/routes/{auth,decisions,issues,prds,verifications,health}.py`, `backend/app/models/{decision,issue,prd,verification,user}.py`, `backend/app/services/auth.py`, `frontend/src/api/client.ts`, `frontend/src/app.tsx`, `frontend/src/components/Layout.tsx`, `frontend/src/hooks/useAuth.tsx`, `frontend/src/pages/{Dashboard,GrillSession,PrdView,IssueBoard,Verification,Settings,Callback,Login}.tsx`
+Implementation: `backend/app/main.py`, `backend/app/api/routes/{auth,decisions,issues,prds,verifications,health}.py`, `backend/app/models/{decision,issue,prd,verification,user}.py`, `backend/app/services/{auth,decisions}.py`, `frontend/src/api/client.ts`, `frontend/src/App.tsx`, `frontend/src/components/Layout.tsx`, `frontend/src/hooks/useAuth.tsx`, `frontend/src/pages/{Dashboard,GrillSession,PrdView,IssueBoard,Verification,Settings,Callback,Login}.tsx`
 
 Tests: `backend/tests/test_auth.py`, `backend/tests/test_decisions.py`, `backend/tests/test_prds.py`, `backend/tests/test_issues.py`, `backend/tests/test_verifications.py`, `frontend/src/pages/__tests__/Dashboard.test.tsx`, `frontend/src/pages/__tests__/Settings.test.tsx`, `frontend/src/components/__tests__/Layout.test.tsx`
+
+### auth-callback-validation — OIDC callback state/nonce/PKCE server-side validation with integration test
+
+Status: done
+
+Acceptance:
+- Login binds state/nonce/code_verifier to a short-lived signed oauth_state cookie
+- Callback rejects missing, malformed, mismatched state
+- Callback rejects mismatched code_verifier (PKCE)
+- Callback validates id_token nonce via real RS256 verification
+- Successful callback issues a session token usable by an authorized request
+- OAuth state cookie is single-use (cleared after success)
+
+Implementation: `backend/app/services/auth.py (create_state_token, decode_state_token)`, `backend/app/models/user.py (role_values)`, `backend/app/api/routes/auth.py (login, callback, oauth_state cookie helpers)`
+
+Tests: `backend/tests/test_auth.py::test_oidc_login_sets_state_cookie`, `backend/tests/test_auth.py::test_oidc_callback_full_flow`, `backend/tests/test_auth.py::test_oidc_callback_rejects_missing_state`, `backend/tests/test_auth.py::test_oidc_callback_rejects_state_mismatch`, `backend/tests/test_auth.py::test_oidc_callback_rejects_pkce_mismatch`, `backend/tests/test_auth.py::test_oidc_callback_rejects_nonce_mismatch`
 
 ### decision-ledger — Decision ledger for traceable requirements
 
