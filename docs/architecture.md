@@ -81,11 +81,11 @@ Domain engine that:
 
 ## Authentication Flow
 
-1. Frontend calls `POST /auth/login` → backend returns OIDC authorization URL with state/nonce/code_verifier
-2. Frontend stores state/nonce/code_verifier in sessionStorage, redirects to Keycloak
-3. User authenticates → Keycloak redirects back to `/auth/callback`
-4. Backend exchanges code for OIDC token, validates, creates user if needed
-5. Backend creates session JWT, sets it as HttpOnly SameSite cookie
+1. Frontend calls `POST /auth/login` → backend returns the OIDC authorization URL and binds `state`/`nonce`/`code_verifier` to a short-lived signed `oauth_state` cookie
+2. Frontend redirects to Keycloak (which receives `state`, `nonce`, `code_challenge` via the auth URL)
+3. User authenticates → Keycloak redirects back to the SPA `/callback` with `code` + `state`
+4. SPA POSTs `{code, state, code_verifier}` to `POST /auth/callback`; the backend validates `state` and `code_verifier` against the `oauth_state` cookie (CSRF + PKCE defense-in-depth), exchanges the code, and validates the `id_token` signature/issuer/audience **and nonce** (RS256)
+5. Backend creates a session JWT and sets it as an HttpOnly SameSite cookie
 6. Frontend calls `GET /auth/me` (cookie sent via `withCredentials`)
 7. Subsequent API calls authenticated via cookie
 

@@ -154,7 +154,7 @@ def create_session_token(user: User) -> str:
     payload = {
         "sub": user.oidc_sub,
         "user_id": user.id,
-        "roles": [r.value for r in user.roles],
+        "roles": user.role_values(),
         "exp": datetime.now(timezone.utc) + timedelta(hours=24),
         "iat": datetime.now(timezone.utc),
     }
@@ -162,4 +162,26 @@ def create_session_token(user: User) -> str:
 
 
 def decode_session_token(token: str) -> Dict[str, Any]:
+    return jwt.decode(token, settings.SESSION_SECRET_KEY, algorithms=["HS256"])
+
+
+OAUTH_STATE_TTL_SECONDS = 300
+
+
+def create_state_token(state: str, nonce: str, code_verifier: str) -> str:
+    """HMAC-sign the state/nonce/code_verifier so the callback can validate it."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "typ": "oauth_state",
+        "st": state,
+        "nonce": nonce,
+        "cv": code_verifier,
+        "iat": now,
+        "exp": now + timedelta(seconds=OAUTH_STATE_TTL_SECONDS),
+    }
+    return jwt.encode(payload, settings.SESSION_SECRET_KEY, algorithm="HS256")
+
+
+def decode_state_token(token: str) -> Dict[str, Any]:
+    """Verify the OAuth state token; raises on invalid or expired token."""
     return jwt.decode(token, settings.SESSION_SECRET_KEY, algorithms=["HS256"])
