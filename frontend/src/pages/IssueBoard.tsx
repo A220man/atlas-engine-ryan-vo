@@ -3,9 +3,37 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { api, Issue, IssueCreate, IssueCompletion } from "@/api/client";
 import {
-  Plus, Save, CheckCircle, Clock, AlertCircle, X,
+  Plus, CheckCircle, Clock, AlertCircle, X,
   Loader2, GripVertical,
 } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
+import { FormDialog } from "@/components/FormDialog";
+
+const statusLabels: Record<Issue["status"], string> = {
+  open: "Open",
+  in_progress: "In Progress",
+  ready_for_review: "Review",
+  done: "Done",
+  wont_fix: "Won't Fix",
+};
+
+const statusIcons: Record<Issue["status"], React.ReactNode> = {
+  done: <CheckCircle size={16} style={{ color: "var(--color-success)" }} />,
+  in_progress: <Clock size={16} style={{ color: "var(--color-warning)" }} />,
+  ready_for_review: <AlertCircle size={16} style={{ color: "var(--color-info)" }} />,
+  wont_fix: <X size={16} style={{ color: "var(--color-error)" }} />,
+  open: <Clock size={16} style={{ color: "var(--color-text-muted)" }} />,
+};
+
+const initialFormData: IssueCreate = {
+  session_id: "",
+  title: "",
+  description: "",
+  decision_ids: [],
+  acceptance_criteria: [],
+  blocked_by: [],
+  pr_workflow: false,
+};
 
 export default function IssueBoard() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -14,15 +42,9 @@ export default function IssueBoard() {
 
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<IssueCreate>({
+    ...initialFormData,
     session_id: currentSessionId,
-    title: "",
-    description: "",
-    decision_ids: [],
-    acceptance_criteria: [],
-    blocked_by: [],
-    pr_workflow: false,
   });
-
   const [newCriterion, setNewCriterion] = useState("");
 
   const { data: issues, isLoading } = useQuery({
@@ -42,15 +64,7 @@ export default function IssueBoard() {
       queryClient.invalidateQueries({ queryKey: ["issues", currentSessionId] });
       queryClient.invalidateQueries({ queryKey: ["unblocked-issues", currentSessionId] });
       setShowForm(false);
-      setFormData({
-        session_id: currentSessionId,
-        title: "",
-        description: "",
-        decision_ids: [],
-        acceptance_criteria: [],
-        blocked_by: [],
-        pr_workflow: false,
-      });
+      setFormData({ ...initialFormData, session_id: currentSessionId });
     },
   });
 
@@ -92,34 +106,16 @@ export default function IssueBoard() {
     }
   };
 
-  const getStatusIcon = (status: Issue["status"]) => {
-    switch (status) {
-      case "done": return <CheckCircle size={16} style={{ color: "var(--color-success)" }} />;
-      case "in_progress": return <Clock size={16} style={{ color: "var(--color-warning)" }} />;
-      case "ready_for_review": return <AlertCircle size={16} style={{ color: "var(--color-info)" }} />;
-      case "wont_fix": return <X size={16} style={{ color: "var(--color-error)" }} />;
-      default: return <Clock size={16} style={{ color: "var(--color-text-muted)" }} />;
-    }
-  };
-
-  const statusLabels: Record<Issue["status"], string> = {
-    open: "Open",
-    in_progress: "In Progress",
-    ready_for_review: "Review",
-    done: "Done",
-    wont_fix: "Won't Fix",
-  };
+  const handleCloseForm = () => setShowForm(false);
 
   const unblockedIds = new Set(unblocked?.map((i: Issue) => i.id) || []);
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="page-title">Issue Board</h1>
-            <p className="page-subtitle">Trace decisions through issues to implementation</p>
-          </div>
+      <PageHeader
+        title="Issue Board"
+        subtitle="Trace decisions through issues to implementation"
+        action={
           <button
             onClick={() => setShowForm(true)}
             className="btn btn-primary"
@@ -128,153 +124,132 @@ export default function IssueBoard() {
             <Plus size={18} />
             Create Issue
           </button>
+        }
+      />
+
+      <FormDialog
+        isOpen={showForm}
+        onClose={handleCloseForm}
+        title="New Issue"
+        isSubmitting={createMutation.isPending}
+        onSubmit={handleSubmit}
+        submitLabel="Create Issue"
+      >
+        <div>
+          <label className="label">Title <span className="text-[var(--color-error)]">*</span></label>
+          <input
+            className="input w-full"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            placeholder="Issue title"
+            required
+          />
         </div>
-      </header>
 
-      {showForm && (
-        <div className="card mb-6 max-w-3xl">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="card-title">New Issue</h2>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="btn btn-ghost btn-sm"
-              >
-                <X size={16} /> Cancel
-              </button>
-            </div>
+        <div>
+          <label className="label">Description <span className="text-[var(--color-error)]">*</span></label>
+          <textarea
+            className="input textarea"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Describe the issue and which decisions it traces..."
+            rows={6}
+            required
+          />
+        </div>
 
-            <div>
-              <label className="label">Title <span className="text-[var(--color-error)]">*</span></label>
-              <input
-                className="input w-full"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                placeholder="Issue title"
-                required
-              />
-            </div>
+        <div>
+          <label className="label">Decision IDs</label>
+          <input
+            className="input w-full font-mono text-sm"
+            value={formData.decision_ids?.join(", ") || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                decision_ids: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+              })
+            }
+            placeholder="Comma-separated decision ULIDs"
+          />
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">
+            Associate this issue with specific decisions from the decision ledger
+          </p>
+        </div>
 
-            <div>
-              <label className="label">Description <span className="text-[var(--color-error)]">*</span></label>
-              <textarea
-                className="input textarea"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe the issue and which decisions it traces..."
-                rows={6}
-                required
-              />
-            </div>
+        <div>
+          <label className="label">Blocked By</label>
+          <input
+            className="input w-full font-mono text-sm"
+            value={formData.blocked_by?.join(", ") || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                blocked_by: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+              })
+            }
+            placeholder="Comma-separated issue ULIDs that must be done first"
+          />
+        </div>
 
-            <div>
-              <label className="label">Decision IDs</label>
-              <input
-                className="input w-full font-mono text-sm"
-                value={formData.decision_ids?.join(", ") || ""}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    decision_ids: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                  })
-                }
-                placeholder="Comma-separated decision ULIDs"
-              />
-              <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                Associate this issue with specific decisions from the decision ledger
-              </p>
-            </div>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.pr_workflow || false}
+              onChange={(e) => setFormData({ ...formData, pr_workflow: e.target.checked })}
+            />
+            <span>PR-based workflow (closing handled by merge)</span>
+          </label>
+        </div>
 
-            <div>
-              <label className="label">Blocked By</label>
-              <input
-                className="input w-full font-mono text-sm"
-                value={formData.blocked_by?.join(", ") || ""}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    blocked_by: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                  })
-                }
-                placeholder="Comma-separated issue ULIDs that must be done first"
-              />
-            </div>
-
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.pr_workflow || false}
-                  onChange={(e) => setFormData({ ...formData, pr_workflow: e.target.checked })}
-                />
-                <span>PR-based workflow (closing handled by merge)</span>
-              </label>
-            </div>
-
-            <div>
-              <label className="label">Acceptance Criteria</label>
-              <div className="space-y-2">
-                {(formData.acceptance_criteria || []).map((c, idx) => (
-                  <div key={c.id || idx} className="flex items-center gap-2">
-                    <input
-                      className="input flex-1 text-sm"
-                      value={c.description}
-                      onChange={(e) => {
-                        const updated = [...(formData.acceptance_criteria || [])];
-                        updated[idx] = { ...updated[idx], description: e.target.value };
-                        setFormData({ ...formData, acceptance_criteria: updated });
-                      }}
-                      placeholder={`Criterion ${idx + 1}`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const updated = [...(formData.acceptance_criteria || [])];
-                        updated.splice(idx, 1);
-                        setFormData({ ...formData, acceptance_criteria: updated });
-                      }}
-                      className="btn btn-ghost btn-sm"
-                      aria-label="Remove criterion"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2 mt-2">
+        <div>
+          <label className="label">Acceptance Criteria</label>
+          <div className="space-y-2">
+            {(formData.acceptance_criteria || []).map((c, idx) => (
+              <div key={c.id || idx} className="flex items-center gap-2">
                 <input
                   className="input flex-1 text-sm"
-                  value={newCriterion}
-                  onChange={(e) => setNewCriterion(e.target.value)}
-                  placeholder="Add a criterion..."
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddCriterion())}
+                  value={c.description}
+                  onChange={(e) => {
+                    const updated = [...(formData.acceptance_criteria || [])];
+                    updated[idx] = { ...updated[idx], description: e.target.value };
+                    setFormData({ ...formData, acceptance_criteria: updated });
+                  }}
+                  placeholder={`Criterion ${idx + 1}`}
                 />
                 <button
                   type="button"
-                  onClick={handleAddCriterion}
-                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const updated = [...(formData.acceptance_criteria || [])];
+                    updated.splice(idx, 1);
+                    setFormData({ ...formData, acceptance_criteria: updated });
+                  }}
+                  className="btn btn-ghost btn-sm"
+                  aria-label="Remove criterion"
                 >
-                  Add
+                  <X size={14} />
                 </button>
               </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4 border-t border-[var(--color-border)]">
-              <button type="button" onClick={() => setShowForm(false)} className="btn btn-secondary">
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={createMutation.isPending}>
-                {createMutation.isPending ? (
-                  <><Loader2 size={16} className="animate-spin" /> Creating...</>
-                ) : (
-                  <><Save size={16} /> Create Issue</>
-                )}
-              </button>
-            </div>
-          </form>
+            ))}
+          </div>
+          <div className="flex gap-2 mt-2">
+            <input
+              className="input flex-1 text-sm"
+              value={newCriterion}
+              onChange={(e) => setNewCriterion(e.target.value)}
+              placeholder="Add a criterion..."
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddCriterion())}
+            />
+            <button
+              type="button"
+              onClick={handleAddCriterion}
+              className="btn btn-secondary btn-sm"
+            >
+              Add
+            </button>
+          </div>
         </div>
-      )}
+      </FormDialog>
 
       {isLoading ? (
         <div className="flex justify-center py-8">
@@ -291,7 +266,7 @@ export default function IssueBoard() {
             <div key={issue.id} className="card">
               <div className="flex items-start gap-3 p-4">
                 <div className="flex flex-col items-center gap-1 min-w-[80px]">
-                  {getStatusIcon(issue.status)}
+                  {statusIcons[issue.status]}
                   <span className={`badge ${
                     issue.status === "done" ? "badge-success" :
                     issue.status === "in_progress" || issue.status === "ready_for_review" ? "badge-warning" :

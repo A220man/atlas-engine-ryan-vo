@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { api, Decision, DecisionCreate } from "@/api/client";
-import { Plus, Save, ArrowUpDown, Zap, Lightbulb, Loader2, Check, X, ChevronDown, ChevronUp } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Plus, Zap, Lightbulb, Loader2, ArrowUpDown } from "lucide-react";
+import { PageHeader } from "@/components/PageHeader";
+import { FormDialog } from "@/components/FormDialog";
+import { DecisionCard } from "@/components/DecisionCard";
 
 interface QuestionForm {
   question: string;
@@ -60,6 +62,8 @@ export default function GrillSession() {
     },
   });
 
+  const isSubmitting = createMutation.isPending || supersedeMutation.isPending;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const data: DecisionCreate = {
@@ -91,6 +95,11 @@ export default function GrillSession() {
     setShowForm(true);
   };
 
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+  };
+
   const pivotIds = new Set(frontier?.pivots.map((p: Decision) => p.id) || []);
 
   const questions = decisions?.filter((d: Decision) => d.assumption_number === null) || [];
@@ -98,118 +107,91 @@ export default function GrillSession() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="page-title">Grill Session</h1>
-            <p className="page-subtitle">Record decisions with stable IDs, versioning, and frontier tracking</p>
-          </div>
-          <button onClick={() => setShowForm(true)} className="btn btn-primary" disabled={createMutation.isPending}>
+      <PageHeader
+        title="Grill Session"
+        subtitle="Record decisions with stable IDs, versioning, and frontier tracking"
+        action={
+          <button onClick={() => setShowForm(true)} className="btn btn-primary" disabled={isSubmitting}>
             <Plus size={18} />
             {editingId ? "Update Decision" : "Add Decision"}
           </button>
+        }
+      />
+
+      <FormDialog
+        isOpen={showForm}
+        onClose={handleCloseForm}
+        title={editingId ? "Edit Decision" : "New Decision"}
+        isSubmitting={isSubmitting}
+        onSubmit={handleSubmit}
+        submitLabel={editingId ? "Update" : "Create"}
+      >
+        <div>
+          <label className="label">Question <span className="text-[var(--color-error)]">*</span></label>
+          <textarea
+            className="input textarea"
+            value={formData.question}
+            onChange={(e) => setFormData({ ...formData, question: e.target.value })}
+            placeholder="What decision needs to be made?"
+            required
+          />
         </div>
-      </header>
 
-      {showForm && (
-        <div className="card mb-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className="card-title">{editingId ? "Edit Decision" : "New Decision"}</h2>
-              <button
-                type="button"
-                onClick={() => { setShowForm(false); setEditingId(null); }}
-                className="btn btn-ghost btn-sm ml-auto"
-              >
-                <X size={16} /> Cancel
-              </button>
-            </div>
-
-            <div>
-              <label className="label">Question <span className="text-[var(--color-error)]">*</span></label>
-              <textarea
-                className="input textarea"
-                value={formData.question}
-                onChange={(e) => setFormData({ ...formData, question: e.target.value })}
-                placeholder="What decision needs to be made?"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="label">Answer <span className="text-[var(--color-error)]">*</span></label>
-              <textarea
-                className="input textarea"
-                value={formData.answer}
-                onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
-                placeholder="The resolved answer"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="label">Normalized Requirement <span className="text-[var(--color-error)]">*</span></label>
-              <textarea
-                className="input textarea"
-                value={formData.normalized_requirement}
-                onChange={(e) => setFormData({ ...formData, normalized_requirement: e.target.value })}
-                placeholder="Testable, verifiable requirement extracted from the answer"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="label">Constraints (JSON)</label>
-              <textarea
-                className="input textarea font-mono text-sm"
-                value={JSON.stringify(formData.constraints, null, 2)}
-                onChange={(e) => {
-                  try {
-                    setFormData({ ...formData, constraints: JSON.parse(e.target.value) });
-                  } catch {}
-                }}
-                placeholder='{"environment": "production", "cost": "managed"}'
-              />
-            </div>
-
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.is_pivot}
-                  onChange={(e) => setFormData({ ...formData, is_pivot: e.target.checked })}
-                />
-                <span>Pivot decision (reshapes the design tree)</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.is_assumption}
-                  onChange={(e) => setFormData({ ...formData, is_assumption: e.target.checked })}
-                />
-                <span>Assumption (auto-accepted unless vetoed)</span>
-              </label>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4 border-t border-[var(--color-border)]">
-              <button type="button" onClick={() => { setShowForm(false); setEditingId(null); }} className="btn btn-secondary">
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={createMutation.isPending || supersedeMutation.isPending}>
-                {createMutation.isPending || supersedeMutation.isPending ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" /> Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save size={16} /> {editingId ? "Update" : "Create"}
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+        <div>
+          <label className="label">Answer <span className="text-[var(--color-error)]">*</span></label>
+          <textarea
+            className="input textarea"
+            value={formData.answer}
+            onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
+            placeholder="The resolved answer"
+            required
+          />
         </div>
-      )}
+
+        <div>
+          <label className="label">Normalized Requirement <span className="text-[var(--color-error)]">*</span></label>
+          <textarea
+            className="input textarea"
+            value={formData.normalized_requirement}
+            onChange={(e) => setFormData({ ...formData, normalized_requirement: e.target.value })}
+            placeholder="Testable, verifiable requirement extracted from the answer"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="label">Constraints (JSON)</label>
+          <textarea
+            className="input textarea font-mono text-sm"
+            value={JSON.stringify(formData.constraints, null, 2)}
+            onChange={(e) => {
+              try {
+                setFormData({ ...formData, constraints: JSON.parse(e.target.value) });
+              } catch {}
+            }}
+            placeholder='{"environment": "production", "cost": "managed"}'
+          />
+        </div>
+
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.is_pivot}
+              onChange={(e) => setFormData({ ...formData, is_pivot: e.target.checked })}
+            />
+            <span>Pivot decision (reshapes the design tree)</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.is_assumption}
+              onChange={(e) => setFormData({ ...formData, is_assumption: e.target.checked })}
+            />
+            <span>Assumption (auto-accepted unless vetoed)</span>
+          </label>
+        </div>
+      </FormDialog>
 
       <div className="card mb-6">
         <div className="card-header">
@@ -300,79 +282,6 @@ export default function GrillSession() {
                 isAssumption={true}
               />
             ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DecisionCard({ decision, isPivot, onEdit, isAssumption }: {
-  decision: Decision;
-  isPivot: boolean;
-  onEdit: (d: Decision) => void;
-  isAssumption: boolean;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className="border border-[var(--color-border)] rounded-lg overflow-hidden">
-      <div className="p-4 flex items-start gap-3">
-        <div className="flex flex-col items-center gap-1 min-w-[60px]">
-          <span className="font-mono text-sm font-medium text-[var(--color-text-muted)]">
-            {isAssumption ? `A${decision.assumption_number}` : `Q${decision.question_number}`}
-          </span>
-          {isPivot && <Zap size={12} style={{ color: "var(--color-warning)" }} />}
-          <span className={`badge badge-xs ${decision.status === "superseded" ? "badge-muted" : "badge-success"}`}>
-            v{decision.version}
-          </span>
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <h3 className="font-medium truncate">{isAssumption ? "Assumption" : "Question"}: {decision.question}</h3>
-            {decision.status === "superseded" && (
-              <span className="badge badge-muted">Superseded</span>
-            )}
-          </div>
-          <p className="text-sm text-[var(--color-text-muted)] mb-2">{decision.answer}</p>
-          <p className="text-sm font-mono text-[var(--color-primary)]/80">
-            Requirement: {decision.normalized_requirement.slice(0, 120)}...
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="btn btn-ghost btn-sm"
-            aria-expanded={expanded}
-          >
-            {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-          <button onClick={() => onEdit(decision)} className="btn btn-ghost btn-sm" aria-label="Edit">
-            <Check size={16} />
-          </button>
-        </div>
-      </div>
-
-      {expanded && (
-        <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-bg)] space-y-3">
-          <div>
-            <h4 className="text-xs font-medium text-[var(--color-text-muted)] mb-1">Constraints</h4>
-            <pre className="text-xs bg-[var(--color-code-bg)] p-3 rounded overflow-auto">
-              {JSON.stringify(decision.constraints, null, 2) || "{}"}
-            </pre>
-          </div>
-          <div className="flex items-center gap-2 text-xs text-[var(--color-text-muted)]">
-            <span>Created: {formatDistanceToNow(new Date(decision.created_at), { addSuffix: true })}</span>
-            <span>•</span>
-            <span>Updated: {formatDistanceToNow(new Date(decision.updated_at), { addSuffix: true })}</span>
-            {decision.superseded_by && (
-              <>
-                <span>•</span>
-                <span className="text-[var(--color-warning)]">Superseded by {decision.superseded_by.slice(0, 8)}</span>
-              </>
-            )}
           </div>
         </div>
       )}

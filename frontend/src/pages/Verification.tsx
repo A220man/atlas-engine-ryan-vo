@@ -10,10 +10,37 @@ import {
   CoverageReport,
 } from "@/api/client";
 import {
-  Plus, Save, CheckCircle, XCircle, Clock, AlertTriangle,
-  Loader2, BarChart3, X,
+  Plus, CheckCircle, XCircle, Clock, AlertTriangle,
+  Loader2, BarChart3,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { PageHeader } from "@/components/PageHeader";
+import { FormDialog } from "@/components/FormDialog";
+
+const evidenceTypeLabels: Record<Verification["evidence_type"], string> = {
+  test_result: "Test Result",
+  screenshot: "Screenshot",
+  log: "Log",
+  document: "Document",
+  code_review: "Code Review",
+  manual: "Manual",
+};
+
+const statusColors: Record<Verification["status"], string> = {
+  passed: "var(--color-success)",
+  failed: "var(--color-error)",
+  pending: "var(--color-text-muted)",
+  in_progress: "var(--color-warning)",
+  blocked: "var(--color-error)",
+};
+
+const statusIcons: Record<Verification["status"], React.ReactNode> = {
+  passed: <CheckCircle size={16} />,
+  failed: <XCircle size={16} />,
+  in_progress: <Clock size={16} />,
+  blocked: <AlertTriangle size={16} />,
+  pending: <Clock size={16} />,
+};
 
 export default function VerificationPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -24,7 +51,7 @@ export default function VerificationPage() {
   const [formData, setFormData] = useState<VerificationCreate>({
     session_id: currentSessionId,
     decision_id: "",
-    evidence_type: "test_result" as Verification["evidence_type"],
+    evidence_type: "test_result",
     evidence_ref: "",
     evidence_content: "",
     criteria_covered: [],
@@ -65,7 +92,7 @@ export default function VerificationPage() {
       setFormData({
         session_id: currentSessionId,
         decision_id: "",
-        evidence_type: "test_result" as Verification["evidence_type"],
+        evidence_type: "test_result",
         evidence_ref: "",
         evidence_content: "",
         criteria_covered: [],
@@ -80,35 +107,7 @@ export default function VerificationPage() {
     createMutation.mutate(formData);
   };
 
-  const getStatusColor = (status: Verification["status"]) => {
-    const colors: Record<Verification["status"], string> = {
-      passed: "var(--color-success)",
-      failed: "var(--color-error)",
-      pending: "var(--color-text-muted)",
-      in_progress: "var(--color-warning)",
-      blocked: "var(--color-error)",
-    };
-    return colors[status] || "var(--color-text-muted)";
-  };
-
-  const getStatusIcon = (status: Verification["status"]) => {
-    switch (status) {
-      case "passed": return <CheckCircle size={16} />;
-      case "failed": return <XCircle size={16} />;
-      case "in_progress": return <Clock size={16} />;
-      case "blocked": return <AlertTriangle size={16} />;
-      default: return <Clock size={16} />;
-    }
-  };
-
-  const evidenceTypeLabels: Record<Verification["evidence_type"], string> = {
-    test_result: "Test Result",
-    screenshot: "Screenshot",
-    log: "Log",
-    document: "Document",
-    code_review: "Code Review",
-    manual: "Manual",
-  };
+  const handleCloseForm = () => setShowForm(false);
 
   const decisionMap = new Map<string, Decision>(
     (decisions || []).map((d: Decision) => [d.id, d])
@@ -119,12 +118,10 @@ export default function VerificationPage() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="page-title">Verification</h1>
-            <p className="page-subtitle">Evidence that decisions, stories, and criteria are satisfied</p>
-          </div>
+      <PageHeader
+        title="Verification"
+        subtitle="Evidence that decisions, stories, and criteria are satisfied"
+        action={
           <button
             onClick={() => setShowForm(true)}
             className="btn btn-primary"
@@ -133,8 +130,8 @@ export default function VerificationPage() {
             <Plus size={18} />
             Add Evidence
           </button>
-        </div>
-      </header>
+        }
+      />
 
       {coverage && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -191,136 +188,115 @@ export default function VerificationPage() {
         </div>
       )}
 
-      {showForm && (
-        <div className="card mb-6 max-w-3xl">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="card-title">Add Verification Evidence</h2>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="btn btn-ghost btn-sm"
-              >
-                <X size={16} /> Cancel
-              </button>
+      <FormDialog
+        isOpen={showForm}
+        onClose={handleCloseForm}
+        title="Add Verification Evidence"
+        isSubmitting={createMutation.isPending}
+        onSubmit={handleSubmit}
+        submitLabel="Save Evidence"
+      >
+        <div>
+          <label className="label">Decision ID <span className="text-[var(--color-error)]">*</span></label>
+          <input
+            className="input w-full font-mono text-sm"
+            value={formData.decision_id}
+            onChange={(e) => setFormData({ ...formData, decision_id: e.target.value })}
+            placeholder="Decision ULID"
+            required
+          />
+          {decisions && decisions.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {decisions.map((d: Decision) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, decision_id: d.id })}
+                  className="text-xs font-mono bg-[var(--color-bg-hover)] px-2 py-1 rounded hover:bg-[var(--color-bg-elevated)]"
+                >
+                  Q{d.question_number}: {d.question.slice(0, 40)}...
+                </button>
+              ))}
             </div>
-
-            <div>
-              <label className="label">Decision ID <span className="text-[var(--color-error)]">*</span></label>
-              <input
-                className="input w-full font-mono text-sm"
-                value={formData.decision_id}
-                onChange={(e) => setFormData({ ...formData, decision_id: e.target.value })}
-                placeholder="Decision ULID"
-                required
-              />
-              {decisions && decisions.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {decisions.map((d: Decision) => (
-                    <button
-                      key={d.id}
-                      type="button"
-                      onClick={() => setFormData({ ...formData, decision_id: d.id })}
-                      className="text-xs font-mono bg-[var(--color-bg-hover)] px-2 py-1 rounded hover:bg-[var(--color-bg-elevated)]"
-                    >
-                      Q{d.question_number}: {d.question.slice(0, 40)}...
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="label">Evidence Type <span className="text-[var(--color-error)]">*</span></label>
-              <select
-                className="input w-full"
-                value={formData.evidence_type}
-                onChange={(e) => setFormData({ ...formData, evidence_type: e.target.value as Verification["evidence_type"] })}
-              >
-                {Object.entries(evidenceTypeLabels).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="label">Evidence Reference <span className="text-[var(--color-error)]">*</span></label>
-              <input
-                className="input w-full font-mono text-sm"
-                value={formData.evidence_ref}
-                onChange={(e) => setFormData({ ...formData, evidence_ref: e.target.value })}
-                placeholder="e.g., test_report_001, commit abc123, URL"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="label">Evidence Content (optional)</label>
-              <textarea
-                className="input textarea font-mono text-sm"
-                value={formData.evidence_content || ""}
-                onChange={(e) => setFormData({ ...formData, evidence_content: e.target.value })}
-                placeholder="Paste test output, log excerpt, or notes..."
-                rows={6}
-              />
-            </div>
-
-            <div>
-              <label className="label">Criteria Covered</label>
-              <input
-                className="input w-full font-mono text-sm"
-                value={formData.criteria_covered?.join(", ") || ""}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    criteria_covered: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                  })
-                }
-                placeholder="Comma-separated criterion IDs"
-              />
-            </div>
-
-            <div>
-              <label className="label">Constraints Covered</label>
-              <input
-                className="input w-full font-mono text-sm"
-                value={formData.constraints_covered?.join(", ") || ""}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    constraints_covered: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
-                  })
-                }
-                placeholder="Comma-separated constraint keys"
-              />
-            </div>
-
-            <div>
-              <label className="label">Notes</label>
-              <textarea
-                className="input textarea"
-                value={formData.notes || ""}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Additional context about this verification..."
-                rows={3}
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4 border-t border-[var(--color-border)]">
-              <button type="button" onClick={() => setShowForm(false)} className="btn btn-secondary">
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={createMutation.isPending}>
-                {createMutation.isPending ? (
-                  <><Loader2 size={16} className="animate-spin" /> Saving...</>
-                ) : (
-                  <><Save size={16} /> Save Evidence</>
-                )}
-              </button>
-            </div>
-          </form>
+          )}
         </div>
-      )}
+
+        <div>
+          <label className="label">Evidence Type <span className="text-[var(--color-error)]">*</span></label>
+          <select
+            className="input w-full"
+            value={formData.evidence_type}
+            onChange={(e) => setFormData({ ...formData, evidence_type: e.target.value as Verification["evidence_type"] })}
+          >
+            {Object.entries(evidenceTypeLabels).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="label">Evidence Reference <span className="text-[var(--color-error)]">*</span></label>
+          <input
+            className="input w-full font-mono text-sm"
+            value={formData.evidence_ref}
+            onChange={(e) => setFormData({ ...formData, evidence_ref: e.target.value })}
+            placeholder="e.g., test_report_001, commit abc123, URL"
+            required
+          />
+        </div>
+
+        <div>
+          <label className="label">Evidence Content (optional)</label>
+          <textarea
+            className="input textarea font-mono text-sm"
+            value={formData.evidence_content || ""}
+            onChange={(e) => setFormData({ ...formData, evidence_content: e.target.value })}
+            placeholder="Paste test output, log excerpt, or notes..."
+            rows={6}
+          />
+        </div>
+
+        <div>
+          <label className="label">Criteria Covered</label>
+          <input
+            className="input w-full font-mono text-sm"
+            value={formData.criteria_covered?.join(", ") || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                criteria_covered: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+              })
+            }
+            placeholder="Comma-separated criterion IDs"
+          />
+        </div>
+
+        <div>
+          <label className="label">Constraints Covered</label>
+          <input
+            className="input w-full font-mono text-sm"
+            value={formData.constraints_covered?.join(", ") || ""}
+            onChange={(e) =>
+              setFormData({
+                ...formData,
+                constraints_covered: e.target.value.split(",").map((s) => s.trim()).filter(Boolean),
+              })
+            }
+            placeholder="Comma-separated constraint keys"
+          />
+        </div>
+
+        <div>
+          <label className="label">Notes</label>
+          <textarea
+            className="input textarea"
+            value={formData.notes || ""}
+            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+            placeholder="Additional context about this verification..."
+            rows={3}
+          />
+        </div>
+      </FormDialog>
 
       {isLoading ? (
         <div className="flex justify-center py-8">
@@ -337,8 +313,8 @@ export default function VerificationPage() {
             <div key={v.id} className="card">
               <div className="p-4 flex items-start gap-3">
                 <div className="flex flex-col items-center gap-1 min-w-[50px]">
-                  <div style={{ color: getStatusColor(v.status) }}>
-                    {getStatusIcon(v.status)}
+                  <div style={{ color: statusColors[v.status] }}>
+                    {statusIcons[v.status]}
                   </div>
                   <span className="text-xs font-medium">{v.evidence_type}</span>
                 </div>

@@ -67,7 +67,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Decisions
   async listDecisions(sessionId: string) {
     const response = await this.client.get(`/decisions/session/${sessionId}`);
     return response.data;
@@ -105,7 +104,6 @@ class ApiClient {
     return response.data;
   }
 
-  // PRDs
   async listPrds(sessionId: string) {
     const response = await this.client.get(`/prds/session/${sessionId}`);
     return response.data;
@@ -131,7 +129,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Issues
   async listIssues(sessionId: string, status?: string) {
     const params = status ? { status } : {};
     const response = await this.client.get(`/issues/session/${sessionId}`, { params });
@@ -163,7 +160,6 @@ class ApiClient {
     return response.data;
   }
 
-  // Verifications
   async listVerifications(sessionId: string, decisionId?: string) {
     const params = decisionId ? { decision_id: decisionId } : {};
     const response = await this.client.get(`/verifications/session/${sessionId}`, { params });
@@ -193,7 +189,6 @@ class ApiClient {
 
 export const api = new ApiClient();
 
-// Types
 export interface User {
   id: string;
   email: string;
@@ -228,30 +223,6 @@ export interface DecisionCreate {
   assumption_number?: number;
 }
 
-export interface DecisionCoverage {
-  decision_id: string;
-  prd_refs: string[];
-  issue_refs: string[];
-  impl_refs: string[];
-  verify_refs: string[];
-  coverage_percent: number;
-  is_fully_covered: boolean;
-}
-
-export interface SessionCoverageReport {
-  session_id: string;
-  total: number;
-  fully_covered: number;
-  coverage_percent: number;
-  by_category: Record<string, number>;
-  gaps: Array<Record<string, any>>;
-}
-
-export interface FrontierResponse {
-  frontier: Decision[];
-  pivots: Decision[];
-}
-
 export interface Prd {
   id: string;
   session_id: string;
@@ -261,10 +232,6 @@ export interface Prd {
   decision_versions: Record<string, number>;
   created_at: string;
   updated_at: string;
-}
-
-export interface PrdWithMappings extends Prd {
-  mappings: PrdMapping[];
 }
 
 export interface PrdMapping {
@@ -289,15 +256,6 @@ export interface PrdMappingCreate {
   user_story_refs?: string[];
   acceptance_criteria_refs?: string[];
   constraint_refs?: string[];
-}
-
-export interface StalenessResponse {
-  is_stale: boolean;
-  stale_mappings: Array<{
-    decision_id: string;
-    decision_version: number;
-    mapped_version: number;
-  }>;
 }
 
 export interface AcceptanceCriterion {
