@@ -2,8 +2,18 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
 import { api, Prd, PrdMapping, PrdCreate, PrdMappingCreate, Decision } from "@/api/client";
-import { Plus, Save, FileText, GitBranch, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, FileText, GitBranch, AlertTriangle, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { PageHeader } from "@/components/PageHeader";
+import { FormDialog } from "@/components/FormDialog";
+
+const initialCreateForm: PrdCreate = {
+  session_id: "",
+  type: "product",
+  title: "",
+  content: "",
+  decision_versions: {},
+};
 
 export default function PrdView() {
   const { sessionId, prdId } = useParams<{ sessionId: string; prdId?: string }>();
@@ -12,11 +22,8 @@ export default function PrdView() {
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createForm, setCreateForm] = useState<PrdCreate>({
+    ...initialCreateForm,
     session_id: currentSessionId,
-    type: "product",
-    title: "",
-    content: "",
-    decision_versions: {},
   });
 
   const { data: prds } = useQuery({
@@ -48,7 +55,7 @@ export default function PrdView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["prds", currentSessionId] });
       setShowCreateForm(false);
-      setCreateForm({ session_id: currentSessionId, type: "product", title: "", content: "", decision_versions: {} });
+      setCreateForm({ ...initialCreateForm, session_id: currentSessionId });
     },
   });
 
@@ -63,18 +70,16 @@ export default function PrdView() {
   if (!prdId && !showCreateForm) {
     return (
       <div className="page">
-        <header className="page-header">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="page-title">PRDs & Design Documents</h1>
-              <p className="page-subtitle">Map decisions to requirements, user stories, and acceptance criteria</p>
-            </div>
+        <PageHeader
+          title="PRDs & Design Documents"
+          subtitle="Map decisions to requirements, user stories, and acceptance criteria"
+          action={
             <button onClick={() => setShowCreateForm(true)} className="btn btn-primary">
               <Plus size={18} />
               Create PRD
             </button>
-          </div>
-        </header>
+          }
+        />
 
         <div className="card">
           {prds && prds.length > 0 ? (
@@ -124,82 +129,81 @@ export default function PrdView() {
   }
 
   if (showCreateForm && !prdId) {
+    const handleCreateSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      createMutation.mutate(createForm);
+    };
+
     return (
       <div className="page">
-        <header className="page-header">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="page-title">Create PRD</h1>
-              <p className="page-subtitle">Create a new Product Requirements Document or Design Document</p>
-            </div>
+        <PageHeader
+          title="Create PRD"
+          subtitle="Create a new Product Requirements Document or Design Document"
+          action={
             <button onClick={() => setShowCreateForm(false)} className="btn btn-ghost">
               Cancel
             </button>
+          }
+        />
+
+        <FormDialog
+          isOpen={true}
+          onClose={() => setShowCreateForm(false)}
+          title="Create PRD"
+          isSubmitting={createMutation.isPending}
+          onSubmit={handleCreateSubmit}
+          submitLabel="Create PRD"
+        >
+          <div>
+            <label className="label">Type</label>
+            <select
+              className="input"
+              value={createForm.type}
+              onChange={(e) => setCreateForm({ ...createForm, type: e.target.value as "product" | "design" })}
+            >
+              <option value="product">Product Requirements Document</option>
+              <option value="design">Design Document</option>
+            </select>
           </div>
-        </header>
 
-        <div className="card max-w-3xl">
-          <form onSubmit={(e) => { e.preventDefault(); createMutation.mutate(createForm); }} className="space-y-4">
-            <div>
-              <label className="label">Type</label>
-              <select
-                className="input"
-                value={createForm.type}
-                onChange={(e) => setCreateForm({ ...createForm, type: e.target.value as "product" | "design" })}
-              >
-                <option value="product">Product Requirements Document</option>
-                <option value="design">Design Document</option>
-              </select>
-            </div>
+          <div>
+            <label className="label">Title <span className="text-[var(--color-error)]">*</span></label>
+            <input
+              className="input"
+              value={createForm.title}
+              onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
+              placeholder="e.g., User Authentication System"
+              required
+            />
+          </div>
 
-            <div>
-              <label className="label">Title <span className="text-[var(--color-error)]">*</span></label>
-              <input
-                className="input"
-                value={createForm.title}
-                onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
-                placeholder="e.g., User Authentication System"
-                required
-              />
-            </div>
+          <div>
+            <label className="label">Content (Markdown) <span className="text-[var(--color-error)]">*</span></label>
+            <textarea
+              className="input textarea font-mono text-sm"
+              value={createForm.content}
+              onChange={(e) => setCreateForm({ ...createForm, content: e.target.value })}
+              placeholder="# PRD Title\n\n## Overview\n\n## Requirements\n\n## Acceptance Criteria"
+              required
+              rows={20}
+            />
+          </div>
 
-            <div>
-              <label className="label">Content (Markdown) <span className="text-[var(--color-error)]">*</span></label>
-              <textarea
-                className="input textarea font-mono text-sm"
-                value={createForm.content}
-                onChange={(e) => setCreateForm({ ...createForm, content: e.target.value })}
-                placeholder="# PRD Title\n\n## Overview\n\n## Requirements\n\n## Acceptance Criteria"
-                required
-                rows={20}
-              />
-            </div>
-
-            <div>
-              <label className="label">Decision Versions (JSON)</label>
-              <textarea
-                className="input textarea font-mono text-sm"
-                value={JSON.stringify(createForm.decision_versions, null, 2)}
-                onChange={(e) => {
-                  try {
-                    setCreateForm({ ...createForm, decision_versions: JSON.parse(e.target.value) });
-                  } catch {}
-                }}
-                placeholder='{"decision-id": 1}'
-                rows={4}
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4 border-t border-[var(--color-border)]">
-              <button type="button" onClick={() => setShowCreateForm(false)} className="btn btn-secondary">
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={createMutation.isPending}>
-                {createMutation.isPending ? <><Loader2 size={16} className="animate-spin" /> Creating...</> : <><Save size={16} /> Create PRD</>}
-              </button>
-            </div>
-          </form>
-        </div>
+          <div>
+            <label className="label">Decision Versions (JSON)</label>
+            <textarea
+              className="input textarea font-mono text-sm"
+              value={JSON.stringify(createForm.decision_versions, null, 2)}
+              onChange={(e) => {
+                try {
+                  setCreateForm({ ...createForm, decision_versions: JSON.parse(e.target.value) });
+                } catch {}
+              }}
+              placeholder='{"decision-id": 1}'
+              rows={4}
+            />
+          </div>
+        </FormDialog>
       </div>
     );
   }
@@ -227,26 +231,23 @@ export default function PrdView() {
 
   return (
     <div className="page">
-      <header className="page-header">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <Link to={`/session/${currentSessionId}/prd`} className="btn btn-ghost btn-sm mb-2">
-              ← Back to PRDs
-            </Link>
-            <div className="flex items-center gap-3">
-              <h1 className="page-title">{currentPrd.title}</h1>
-              <span className={`badge ${currentPrd.type === "design" ? "badge-warning" : "badge-primary"}`}>
-                {currentPrd.type}
+      <PageHeader
+        title={currentPrd.title}
+        subtitle={currentPrd.type}
+        backLink={`/session/${currentSessionId}/prd`}
+        action={
+          <>
+            <span className={`badge ${currentPrd.type === "design" ? "badge-warning" : "badge-primary"}`}>
+              {currentPrd.type}
+            </span>
+            {staleness?.is_stale && (
+              <span className="badge badge-error flex items-center gap-1">
+                <AlertTriangle size={12} /> Stale
               </span>
-              {staleness?.is_stale && (
-                <span className="badge badge-error flex items-center gap-1">
-                  <AlertTriangle size={12} /> Stale
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+            )}
+          </>
+        }
+      />
 
       {staleness?.is_stale && (
         <div className="mb-4 p-3 bg-[var(--color-error)]/10 border border-[var(--color-error)]/30 rounded-lg">
