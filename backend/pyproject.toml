@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "atlas-engine"
 version = "1.0.0"
 description = "Decision ledger enforcing traceability from design decisions through PRD, issues, implementation, and verification"
-readme = "../README.md"
+readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
 authors = [
