@@ -1,3 +1,4 @@
+
 import enum
 from datetime import datetime, timezone
 from sqlalchemy import (
@@ -50,6 +51,7 @@ class Decision(Base):
     answer: Mapped[str] = mapped_column(Text, nullable=False)
     normalized_requirement: Mapped[str] = mapped_column(Text, nullable=False)
     constraints: Mapped[Dict[str, Any]] = mapped_column(JSONVariant, default=dict)
+    depends_on: Mapped[List[str]] = mapped_column(JsonList, default=list)
     is_pivot: Mapped[bool] = mapped_column(default=False)
     status: Mapped[DecisionStatus] = mapped_column(
         SQLEnum(DecisionStatus), default=DecisionStatus.DRAFT, nullable=False
@@ -115,3 +117,4 @@ class DecisionCoverage(Base):
         return all(
             [self.prd_refs, self.issue_refs, self.impl_refs, self.verify_refs]
         )
+
