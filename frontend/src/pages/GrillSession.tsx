@@ -12,6 +12,7 @@ interface QuestionForm {
   answer: string;
   normalized_requirement: string;
   constraints: Record<string, any>;
+  depends_on: string[];
   is_pivot: boolean;
   is_assumption: boolean;
 }
@@ -28,6 +29,7 @@ export default function GrillSession() {
     answer: "",
     normalized_requirement: "",
     constraints: {},
+    depends_on: [],
     is_pivot: false,
     is_assumption: false,
   });
@@ -50,7 +52,7 @@ export default function GrillSession() {
       queryClient.invalidateQueries({ queryKey: ["decisions", currentSessionId] });
       queryClient.invalidateQueries({ queryKey: ["frontier", currentSessionId] });
       setShowForm(false);
-      setFormData({ question: "", answer: "", normalized_requirement: "", constraints: {}, is_pivot: false, is_assumption: false });
+      setFormData({ question: "", answer: "", normalized_requirement: "", constraints: {}, depends_on: [], is_pivot: false, is_assumption: false });
     },
   });
 
@@ -72,6 +74,7 @@ export default function GrillSession() {
       answer: formData.answer,
       normalized_requirement: formData.normalized_requirement,
       constraints: formData.constraints,
+      depends_on: formData.depends_on,
       is_pivot: formData.is_pivot,
       assumption_number: formData.is_assumption ? undefined : undefined,
     };
@@ -89,6 +92,7 @@ export default function GrillSession() {
       answer: decision.answer,
       normalized_requirement: decision.normalized_requirement,
       constraints: decision.constraints,
+      depends_on: decision.depends_on || [],
       is_pivot: decision.is_pivot,
       is_assumption: decision.assumption_number !== null,
     });
@@ -104,6 +108,9 @@ export default function GrillSession() {
 
   const questions = decisions?.filter((d: Decision) => d.assumption_number === null) || [];
   const assumptions = decisions?.filter((d: Decision) => d.assumption_number !== null) || [];
+
+  // Build options for dependency selection (only settled/resolved decisions)
+  const dependencyOptions = decisions?.filter((d: Decision) => d.status === "resolved" || d.status === "superseded") || [];
 
   return (
     <div className="page">
@@ -171,6 +178,26 @@ export default function GrillSession() {
             }}
             placeholder='{"environment": "production", "cost": "managed"}'
           />
+        </div>
+
+        <div>
+          <label className="label">Depends On</label>
+          <select
+            className="input"
+            multiple
+            value={formData.depends_on}
+            onChange={(e) => {
+              const selected = Array.from(e.target.selectedOptions).map((o) => o.value);
+              setFormData({ ...formData, depends_on: selected });
+            }}
+          >
+            {dependencyOptions.map((d: Decision) => (
+              <option key={d.id} value={d.id}>
+                {d.assumption_number ? `A${d.assumption_number}` : `Q${d.question_number}`}: {d.question.slice(0, 60)}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">Hold Ctrl/Cmd to select multiple prerequisites</p>
         </div>
 
         <div className="flex items-center gap-4">

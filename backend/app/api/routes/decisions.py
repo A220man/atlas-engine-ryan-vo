@@ -18,6 +18,7 @@ class DecisionCreate(BaseModel):
     answer: str = Field(..., min_length=1)
     normalized_requirement: str = Field(..., min_length=1)
     constraints: Dict[str, Any] = Field(default_factory=dict)
+    depends_on: List[str] = Field(default_factory=list)
     is_pivot: bool = False
     assumption_number: Optional[int] = None
 
@@ -27,6 +28,7 @@ class DecisionUpdate(BaseModel):
     answer: Optional[str] = None
     normalized_requirement: Optional[str] = None
     constraints: Optional[Dict[str, Any]] = None
+    depends_on: Optional[List[str]] = None
     is_pivot: Optional[bool] = None
 
 
@@ -39,6 +41,7 @@ class DecisionResponse(BaseModel):
     answer: str
     normalized_requirement: str
     constraints: Dict[str, Any]
+    depends_on: List[str]
     is_pivot: bool
     status: str
     version: int
@@ -57,6 +60,7 @@ class DecisionResponse(BaseModel):
             answer=d.answer,
             normalized_requirement=d.normalized_requirement,
             constraints=d.constraints,
+            depends_on=d.depends_on,
             is_pivot=d.is_pivot,
             status=d.status.value,
             version=d.version,
@@ -98,6 +102,7 @@ async def create_decision(
         answer=data.answer,
         normalized_requirement=data.normalized_requirement,
         constraints=data.constraints,
+        depends_on=data.depends_on,
         is_pivot=data.is_pivot,
         assumption_number=data.assumption_number,
     )
@@ -214,7 +219,7 @@ async def get_frontier(
 
     tree = DesignTree()
     for d in decisions:
-        prereqs = d.constraints.get("depends_on", []) if d.constraints else []
+        prereqs = d.depends_on
         tree.add_node(d.id, {"decision": d}, prereqs)
 
     settled = set(request.settled_decision_ids)

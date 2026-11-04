@@ -205,6 +205,7 @@ export interface Decision {
   answer: string;
   normalized_requirement: string;
   constraints: Record<string, any>;
+  depends_on: string[];
   is_pivot: boolean;
   status: string;
   version: number;
@@ -219,6 +220,7 @@ export interface DecisionCreate {
   answer: string;
   normalized_requirement: string;
   constraints?: Record<string, any>;
+  depends_on?: string[];
   is_pivot?: boolean;
   assumption_number?: number;
 }

@@ -64,6 +64,7 @@ class DecisionService:
         answer: str,
         normalized_requirement: str,
         constraints: Dict[str, Any] = None,
+        depends_on: List[str] = None,
         is_pivot: bool = False,
         assumption_number: Optional[int] = None,
     ) -> Decision:
@@ -85,6 +86,7 @@ class DecisionService:
             answer=answer,
             normalized_requirement=normalized_requirement,
             constraints=constraints or {},
+            depends_on=depends_on or [],
             is_pivot=is_pivot,
             status=DecisionStatus.RESOLVED,
         )
@@ -137,6 +139,7 @@ class DecisionService:
             answer=new_answer,
             normalized_requirement=new_normalized,
             constraints=new_constraints,
+            depends_on=old.depends_on,
             is_pivot=old.is_pivot,
         )
         new_decision.version = old.version + 1
@@ -189,3 +192,4 @@ class DecisionService:
             (report["fully_covered"] / report["total"] * 100) if report["total"] > 0 else 100
         )
         return report
+
