@@ -21,9 +21,9 @@ export default function GrillSession() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const currentSessionId = sessionId || "default-session";
   const queryClient = useQueryClient();
-
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [settledIds, setSettledIds] = useState<string[]>([]);
   const [formData, setFormData] = useState<QuestionForm>({
     question: "",
     answer: "",
@@ -41,8 +41,8 @@ export default function GrillSession() {
   });
 
   const { data: frontier } = useQuery({
-    queryKey: ["frontier", currentSessionId],
-    queryFn: () => api.getFrontier(currentSessionId, []),
+    queryKey: ["frontier", currentSessionId, settledIds],
+    queryFn: () => api.getFrontier(currentSessionId, settledIds),
     enabled: !!currentSessionId,
   });
 
@@ -288,6 +288,14 @@ export default function GrillSession() {
                 isPivot={pivotIds.has(d.id)}
                 onEdit={handleEdit}
                 isAssumption={false}
+                settled={settledIds.includes(d.id)}
+                onSettledChange={(id, settled) => {
+                  if (settled) {
+                    setSettledIds((prev) => [...prev, id]);
+                  } else {
+                    setSettledIds((prev) => prev.filter((i) => i !== id));
+                  }
+                }}
               />
             ))}
           </div>
@@ -307,6 +315,14 @@ export default function GrillSession() {
                 isPivot={false}
                 onEdit={handleEdit}
                 isAssumption={true}
+                settled={settledIds.includes(d.id)}
+                onSettledChange={(id, settled) => {
+                  if (settled) {
+                    setSettledIds((prev) => [...prev, id]);
+                  } else {
+                    setSettledIds((prev) => prev.filter((i) => i !== id));
+                  }
+                }}
               />
             ))}
           </div>

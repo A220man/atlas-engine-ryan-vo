@@ -2,15 +2,16 @@ import { Decision } from "@/api/client";
 import { Zap, ChevronUp, ChevronDown, Check } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
-
 interface DecisionCardProps {
   decision: Decision;
   isPivot: boolean;
   onEdit: (d: Decision) => void;
   isAssumption: boolean;
+  settled: boolean;
+  onSettledChange: (id: string, settled: boolean) => void;
 }
 
-export function DecisionCard({ decision, isPivot, onEdit, isAssumption }: DecisionCardProps) {
+export function DecisionCard({ decision, isPivot, onEdit, isAssumption, settled, onSettledChange }: DecisionCardProps) {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -28,7 +29,15 @@ export function DecisionCard({ decision, isPivot, onEdit, isAssumption }: Decisi
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
-            <h3 className="font-medium truncate">{isAssumption ? "Assumption" : "Question"}: {decision.question}</h3>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settled}
+                onChange={(e) => onSettledChange(decision.id, e.target.checked)}
+                className="checkbox checkbox-sm"
+              />
+              <h3 className="font-medium truncate">{isAssumption ? "Assumption" : "Question"}: {decision.question}</h3>
+            </label>
             {decision.status === "superseded" && (
               <span className="badge badge-muted">Superseded</span>
             )}

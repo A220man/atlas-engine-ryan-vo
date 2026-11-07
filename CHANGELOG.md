@@ -1,8 +1,24 @@
 # Changelog
 
-## 1.4.0 — work-in-progress checkpoint
+## 1.5.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
+
+## 1.4.0 — work-in-progress checkpoint
+
+### Added
+- Comprehensive test for decision frontier endpoint (`test_frontier`)
+- Settled decision tracking in GrillSession UI with checkbox on each DecisionCard
+- Frontier query now respects user-selected settled decisions
+
+### Fixed
+- `FrontierRequest` model no longer requires `session_id` in body (comes from path parameter)
+- Decision creation in tests now properly flushes to generate ULIDs before using them as dependencies
+
+### Tests
+- All 38 backend tests pass (including new `test_frontier`)
+- All 6 frontend tests pass
+- Frontend builds successfully
 
 ## 1.3.0 — work-in-progress checkpoint
 

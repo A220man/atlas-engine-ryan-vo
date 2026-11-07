@@ -10,8 +10,12 @@ continue-implementation
 
 ### continue-implementation — Continue implementation and resolve known failures
 
-Status: in_progress
+Status: done
 
 Acceptance:
 - Run checks, fix failures, and implement the next planned feature
+
+Implementation: `backend/app/api/routes/decisions.py`, `backend/app/services/decisions.py`, `frontend/src/pages/GrillSession.tsx`, `frontend/src/components/DecisionCard.tsx`
+
+Tests: `backend/tests/test_decisions.py::test_frontier`
 
