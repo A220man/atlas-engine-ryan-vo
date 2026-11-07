@@ -197,7 +197,6 @@ async def get_session_coverage(
 
 
 class FrontierRequest(BaseModel):
-    session_id: str
     settled_decision_ids: List[str] = Field(default_factory=list)
 
 

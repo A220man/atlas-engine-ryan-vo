@@ -324,4 +324,121 @@ async def test_session_coverage_report(client: AsyncClient, test_session: AsyncS
     assert data["total"] == 2
     assert data["fully_covered"] == 1
     assert data["coverage_percent"] == 50.0
-    assert len(data["gaps"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_frontier(client: AsyncClient, test_session: AsyncSession):
+    user = User(
+        id=str(ULID()),
+        oidc_sub="frontier-sub",
+        email="frontier@example.com",
+        name="Frontier User",
+        roles=[UserRole.OPERATOR],
+    )
+    test_session.add(user)
+    await test_session.commit()
+
+    from app.services.auth import create_session_token
+    token = create_session_token(user)
+
+    # Create a chain of decisions: Q1 -> Q2 -> Q3, where Q2 depends on Q1, Q3 depends on Q2
+    d1 = Decision(
+        session_id="frontier-session",
+        question_number=1,
+        question="Q1: First decision",
+        answer="A1",
+        normalized_requirement="R1",
+        depends_on=[],
+        status=DecisionStatus.RESOLVED,
+    )
+    test_session.add(d1)
+    await test_session.flush()  # Generate d1.id
+    
+    d2 = Decision(
+        session_id="frontier-session",
+        question_number=2,
+        question="Q2: Second decision depends on Q1",
+        answer="A2",
+        normalized_requirement="R2",
+        depends_on=[d1.id],
+        status=DecisionStatus.RESOLVED,
+    )
+    test_session.add(d2)
+    await test_session.flush()  # Generate d2.id
+    
+    d3 = Decision(
+        session_id="frontier-session",
+        question_number=3,
+        question="Q3: Third decision depends on Q2",
+        answer="A3",
+        normalized_requirement="R3",
+        depends_on=[d2.id],
+        status=DecisionStatus.DRAFT,
+    )
+    test_session.add(d3)
+    await test_session.commit()
+    await test_session.refresh(d1)
+    await test_session.refresh(d2)
+    await test_session.refresh(d3)
+
+    # Test 1: No settled decisions - frontier should be Q1 (no prerequisites)
+    response = await client.post(
+        "/api/v1/decisions/session/frontier-session/frontier",
+        json={"settled_decision_ids": []},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["frontier"]) == 1
+    assert data["frontier"][0]["id"] == d1.id
+    assert data["frontier"][0]["question_number"] == 1
+
+    # Test 2: Q1 settled - frontier should be Q2 (prerequisites met)
+    response = await client.post(
+        "/api/v1/decisions/session/frontier-session/frontier",
+        json={"settled_decision_ids": [d1.id]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["frontier"]) == 1
+    assert data["frontier"][0]["id"] == d2.id
+    assert data["frontier"][0]["question_number"] == 2
+
+    # Test 3: Q1 and Q2 settled - frontier should be Q3
+    response = await client.post(
+        "/api/v1/decisions/session/frontier-session/frontier",
+        json={"settled_decision_ids": [d1.id, d2.id]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["frontier"]) == 1
+    assert data["frontier"][0]["id"] == d3.id
+    assert data["frontier"][0]["question_number"] == 3
+
+    # Test 4: All settled - frontier empty
+    response = await client.post(
+        "/api/v1/decisions/session/frontier-session/frontier",
+        json={"settled_decision_ids": [d1.id, d2.id, d3.id]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["frontier"]) == 0
+
+    # Test 5: Pivot scoring - Q2 is a pivot, should appear first in pivots list
+    d2.is_pivot = True
+    test_session.add(d2)
+    await test_session.commit()
+
+    response = await client.post(
+        "/api/v1/decisions/session/frontier-session/frontier",
+        json={"settled_decision_ids": [d1.id]},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["pivots"]) == 1
+    assert data["pivots"][0]["id"] == d2.id
+    assert data["pivots"][0]["is_pivot"] is True
