@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.6.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
+## 1.5.1 — work-in-progress checkpoint
+
+### Added
+- Deterministic frontier ordering by question_number for consistent API responses
+- Deterministic pivot ordering with score then question_number tiebreaker
+
+### Fixed
+- Frontier and pivot lists now have stable ordering regardless of insertion order
+
+### Tests
+- All 38 backend tests pass
+- All 6 frontend tests pass
+
 ## 1.5.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
@@ -31,16 +48,6 @@ Partial code published for continued development. Known issues: STATUS.md.
 ## 1.1.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
-
-## [Unreleased]
-
-### Added
-- Root `pyproject.toml` with project metadata (author: Ryan Vo)
-- OIDC callback now validates `state`, `nonce`, and PKCE `code_verifier` server-side via a short-lived signed `oauth_state` cookie; single-use, cleared after success
-- OIDC login/callback integration tests with a local protocol fixture (signed RS256 `id_token`): happy-path token propagation into `/me`, and rejection of missing/mismatched state, PKCE mismatch, and nonce mismatch
-
-### Fixed
-- `/me` role serialization crashed for DB-loaded users (`roles` stored as JSON strings; `r.value` raised `AttributeError`); added `User.role_values()` and used it in `/me` and session-token creation
 
 ## 1.0.0 — work-in-progress checkpoint
 

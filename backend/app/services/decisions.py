@@ -25,6 +25,8 @@ class DesignTree:
                 continue
             if prereqs.issubset(settled):
                 frontier.append(node_id)
+        # Sort by question_number for deterministic ordering
+        frontier.sort(key=lambda nid: self.nodes[nid].get("question_number", 0))
         return frontier
 
     def get_pivots(self, frontier: List[str]) -> List[str]:
@@ -32,7 +34,8 @@ class DesignTree:
         for node_id in frontier:
             score = self._pivot_score(node_id)
             pivot_scores.append((node_id, score))
-        pivot_scores.sort(key=lambda x: -x[1])
+        # Sort by descending score, then by question_number for deterministic tiebreaker
+        pivot_scores.sort(key=lambda x: (-x[1], self.nodes[x[0]].get("question_number", 0)))
         return [n for n, s in pivot_scores]
 
     def _pivot_score(self, node_id: str) -> int:
