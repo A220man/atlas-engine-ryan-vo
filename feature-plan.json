@@ -1,7 +1,24 @@
 {
   "schema_version": 1,
-  "current_feature": "continue-implementation",
+  "current_feature": "deterministic-frontier-ordering",
   "features": [
+    {
+      "id": "deterministic-frontier-ordering",
+      "title": "Deterministic frontier and pivot ordering",
+      "status": "done",
+      "acceptance": [
+        "Frontier decisions sorted by question_number for consistent API responses",
+        "Pivot decisions sorted by descending pivot score, then by question_number for deterministic tiebreaker",
+        "All existing tests pass"
+      ],
+      "implementation": [
+        "backend/app/services/decisions.py",
+        "backend/app/api/routes/decisions.py"
+      ],
+      "tests": [
+        "backend/tests/test_decisions.py::test_frontier"
+      ]
+    },
     {
       "id": "continue-implementation",
       "title": "Continue implementation and resolve known failures",
@@ -17,6 +34,24 @@
       ],
       "tests": [
         "backend/tests/test_decisions.py::test_frontier"
+      ]
+    },
+    {
+      "id": "llm-advisory-layer",
+      "title": "LLM advisory layer for decision explanations",
+      "status": "planned",
+      "acceptance": [
+        "Optional LLM integration for natural-language explanations of decision rationale",
+        "Explanations grounded in actual decision records and PRD/issue links",
+        "Configurable via environment variable (no LLM key required for offline core)",
+        "Does not affect deterministic DesignTree core"
+      ],
+      "implementation": [
+        "backend/app/services/llm_advisor.py",
+        "backend/app/api/routes/advisor.py"
+      ],
+      "tests": [
+        "backend/tests/test_advisor.py"
       ]
     }
   ]

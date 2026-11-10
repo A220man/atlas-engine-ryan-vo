@@ -219,7 +219,7 @@ async def get_frontier(
     tree = DesignTree()
     for d in decisions:
         prereqs = d.depends_on
-        tree.add_node(d.id, {"decision": d}, prereqs)
+        tree.add_node(d.id, {"decision": d, "question_number": d.question_number}, prereqs)
 
     settled = set(request.settled_decision_ids)
     frontier_ids = tree.get_frontier(settled)
