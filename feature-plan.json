@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "current_feature": "deterministic-frontier-ordering",
+  "current_feature": "llm-advisory-layer",
   "features": [
     {
       "id": "deterministic-frontier-ordering",
@@ -39,7 +39,7 @@
     {
       "id": "llm-advisory-layer",
       "title": "LLM advisory layer for decision explanations",
-      "status": "planned",
+      "status": "done",
       "acceptance": [
         "Optional LLM integration for natural-language explanations of decision rationale",
         "Explanations grounded in actual decision records and PRD/issue links",

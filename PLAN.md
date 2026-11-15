@@ -4,7 +4,7 @@ Each round completes one feature or repair. Future items are planned, not implem
 
 ## Current round
 
-deterministic-frontier-ordering
+llm-advisory-layer
 
 ## Roadmap
 
@@ -34,7 +34,7 @@ Tests: `backend/tests/test_decisions.py::test_frontier`
 
 ### llm-advisory-layer — LLM advisory layer for decision explanations
 
-Status: planned
+Status: done
 
 Acceptance:
 - Optional LLM integration for natural-language explanations of decision rationale
