@@ -30,13 +30,18 @@ class DesignTree:
         return frontier
 
     def get_pivots(self, frontier: List[str]) -> List[str]:
-        pivot_scores = []
+        # Filter to only include decisions marked as pivots, then sort by
+        # descending pivot score (downstream count), then by question_number
+        # for deterministic tiebreaker.
+        pivot_nodes = []
         for node_id in frontier:
-            score = self._pivot_score(node_id)
-            pivot_scores.append((node_id, score))
+            node_data = self.nodes.get(node_id)
+            if node_data and node_data.get("decision") and node_data["decision"].is_pivot:
+                score = self._pivot_score(node_id)
+                pivot_nodes.append((node_id, score))
         # Sort by descending score, then by question_number for deterministic tiebreaker
-        pivot_scores.sort(key=lambda x: (-x[1], self.nodes[x[0]].get("question_number", 0)))
-        return [n for n, s in pivot_scores]
+        pivot_nodes.sort(key=lambda x: (-x[1], self.nodes[x[0]].get("question_number", 0)))
+        return [n for n, s in pivot_nodes]
 
     def _pivot_score(self, node_id: str) -> int:
         downstream = self._get_downstream(node_id)
