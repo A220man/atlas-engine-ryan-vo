@@ -96,7 +96,7 @@ class LLMLayer:
             parts.append(f"Requirement: {requirement}")
 
         if grounded:
-            grounds = "; ".join(grounded)
+            grounds = "; ".join(sorted(set(grounded)))
             parts.append(f"Grounded in: {grounds}")
 
         return " . ".join(parts) + "."
