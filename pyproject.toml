@@ -1,6 +1,6 @@
 [project]
 name = "atlas-engine"
-version = "1.8.0"
+version = "1.9.0"
 description = "Decision-traceability engine for grill-to-verification workflows, with OIDC auth and an optional LLM advisory layer"
 readme = "README.md"
 license = "MIT"

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## 1.8.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.
@@ -113,3 +117,6 @@ Partial code published for continued development. Known issues: STATUS.md.
 - Added `.github/workflows/ci.yml` with test, build, and Docker build jobs
 - Added `backend/pyproject.toml` with project metadata
 - Added `README.md` with install/run/test instructions and architecture diagram
+
+### Fixed
+- LLM advisory layer: deduplicate grounded references in explanation text to maintain consistency with `grounded_in` field (backend/app/services/llm_advisor.py)
